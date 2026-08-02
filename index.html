@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pair Guess Circle</title>
+  <style>
+    :root {
+      --accent: #6f5af7;
+      --accent-rgb: 111, 90, 247;
+      --text: #282431;
+      --muted: #77717f;
+      --panel: rgba(255, 255, 255, 0.72);
+      --panel-strong: rgba(255, 255, 255, 0.92);
+      --line: rgba(51, 43, 68, 0.1);
+      --node-size: 108px;
+      --shadow: 0 24px 70px rgba(42, 35, 60, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--text);
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 7% 8%, rgba(130, 102, 255, 0.13), transparent 28%),
+        radial-gradient(circle at 94% 88%, rgba(84, 183, 255, 0.11), transparent 30%),
+        #f1eff5;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 400px minmax(0, 1fr);
+    }
+
+    .editor {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 21px;
+      border-right: 1px solid rgba(45, 38, 61, 0.08);
+      background: rgba(247, 246, 250, 0.9);
+      backdrop-filter: blur(24px);
+    }
+
+    .brand { margin-bottom: 15px; }
+    .brand h1 {
+      margin: 0 0 5px;
+      font-size: 21px;
+      letter-spacing: -0.04em;
+    }
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .section {
+      margin-top: 12px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.69);
+      box-shadow: 0 8px 24px rgba(50, 43, 70, 0.05);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 11px;
+    }
+    .section-title h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: -0.025em;
+    }
+
+    .tiny {
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .field:first-child { margin-top: 0; }
+    .field label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid rgba(52, 45, 73, 0.12);
+      border-radius: 10px;
+      outline: none;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.89);
+      transition: 0.18s ease;
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: rgba(var(--accent-rgb), 0.56);
+      box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
+    }
+    textarea {
+      min-height: 78px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    input[type="color"] {
+      width: 43px;
+      height: 37px;
+      padding: 3px;
+      border: 1px solid rgba(52, 45, 73, 0.12);
+      border-radius: 10px;
+      background: #fff;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+    .row { display: flex; align-items: center; gap: 8px; }
+    .row > * { flex: 1; }
+    .row > .color-wrap { flex: 0 0 auto; }
+
+    .button-row {
+      display: flex;
+      gap: 7px;
+      margin-top: 9px;
+    }
+    .button-row > * { flex: 1; }
+
+    .btn {
+      min-height: 39px;
+      padding: 9px 11px;
+      border: 0;
+      border-radius: 11px;
+      font-size: 11px;
+      font-weight: 850;
+      transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { cursor: default; opacity: 0.43; transform: none; }
+    .btn-primary {
+      color: #fff;
+      background: var(--accent);
+      box-shadow: 0 8px 20px rgba(var(--accent-rgb), 0.23);
+    }
+    .btn-soft { color: #5c4987; background: rgba(var(--accent-rgb), 0.12); }
+    .btn-plain { color: #625d69; background: rgba(45, 39, 60, 0.065); }
+    .btn-danger { color: #a52f50; background: rgba(210, 52, 92, 0.1); }
+
+    .upload-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      border-radius: 12px;
+      color: #fff;
+      background: var(--accent);
+      box-shadow: 0 9px 22px rgba(var(--accent-rgb), 0.22);
+      font-size: 12px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+    .upload-button input { display: none; }
+
+    .photo-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      max-height: 354px;
+      overflow-y: auto;
+      margin-top: 11px;
+      padding-right: 2px;
+    }
+
+    .photo-card {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border: 1px solid rgba(50, 43, 68, 0.09);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.8);
+    }
+    .photo-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .photo-number {
+      position: absolute;
+      left: 7px;
+      bottom: 7px;
+      min-width: 23px;
+      height: 23px;
+      padding: 0 6px;
+      display: grid;
+      place-items: center;
+      border-radius: 99px;
+      color: #fff;
+      background: rgba(25, 23, 32, 0.7);
+      backdrop-filter: blur(8px);
+      font-size: 9px;
+      font-weight: 900;
+    }
+    .photo-delete {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 25px;
+      height: 25px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      color: #fff;
+      background: rgba(28, 25, 35, 0.68);
+      backdrop-filter: blur(8px);
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .selection-box {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      padding: 10px 11px;
+      border-radius: 12px;
+      color: #665878;
+      background: rgba(var(--accent-rgb), 0.085);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+    .selection-box strong { color: var(--text); }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .toggle-row input { accent-color: var(--accent); }
+
+    .range-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .relation-list {
+      display: grid;
+      gap: 7px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .relation-item {
+      display: grid;
+      grid-template-columns: 9px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid rgba(50, 43, 68, 0.08);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.8);
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .relation-item.active {
+      border-color: rgba(var(--accent-rgb), 0.42);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+    }
+    .relation-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .relation-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .relation-item-index { color: var(--muted); font-weight: 850; }
+
+    .preview-shell {
+      min-width: 0;
+      min-height: 100vh;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: auto;
+    }
+
+    .preview-toolbar {
+      width: min(1400px, 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 10px;
+      color: #716b78;
+      font-size: 10px;
+    }
+
+    .canvas-wrap {
+      width: min(1400px, 100%);
+      overflow: auto;
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .artboard {
+      position: relative;
+      width: 1400px;
+      height: 1000px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 17% 11%, rgba(255,255,255,.94), transparent 25%),
+        radial-gradient(circle at 84% 83%, rgba(255,255,255,.52), transparent 29%),
+        linear-gradient(135deg, #eee9fb 0%, #e6f1f7 53%, #f5eaf1 100%);
+      isolation: isolate;
+    }
+    .artboard::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-image: linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.4), transparent 75%);
+    }
+
+    .artboard-header {
+      position: absolute;
+      top: 54px;
+      left: 64px;
+      right: 64px;
+      height: 98px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 30px;
+    }
+    .eyebrow {
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+    }
+    .art-title {
+      margin: 0;
+      max-width: 920px;
+      font-size: 39px;
+      line-height: 1;
+      letter-spacing: -0.055em;
+    }
+    .art-subtitle {
+      margin: 10px 0 0;
+      color: rgba(44, 39, 53, 0.61);
+      font-size: 13px;
+    }
+    .status-badge {
+      flex: 0 0 auto;
+      margin-top: 3px;
+      padding: 10px 14px;
+      border: 1px solid rgba(46, 39, 63, 0.09);
+      border-radius: 999px;
+      color: #696270;
+      background: rgba(255, 255, 255, 0.58);
+      backdrop-filter: blur(14px);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    .graph-card {
+      position: absolute;
+      left: 44px;
+      top: 172px;
+      width: 1005px;
+      height: 770px;
+      overflow: hidden;
+      border: 1px solid rgba(51, 43, 68, 0.09);
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.33);
+      backdrop-filter: blur(16px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+    }
+
+    .graph-hint {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 1;
+      transform: translate(-50%, -50%);
+      color: rgba(74, 66, 85, 0.31);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      pointer-events: none;
+    }
+
+    #relationsSvg, .node-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #relationsSvg { z-index: 2; overflow: visible; }
+    .node-layer { z-index: 3; }
+
+    .character-node {
+      position: absolute;
+      width: var(--node-size);
+      height: var(--node-size);
+      transform: translate(-50%, -50%);
+      border: 4px solid rgba(255, 255, 255, 0.92);
+      border-radius: 50%;
+      overflow: visible;
+      background: #ece9ef;
+      box-shadow: 0 13px 30px rgba(42, 35, 58, 0.18), 0 0 0 1px rgba(50, 43, 68, 0.09);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      user-select: none;
+    }
+    .character-node.can-pick { cursor: pointer; }
+    .character-node.can-pick:hover { transform: translate(-50%, -50%) scale(1.045); }
+    .character-node.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 8px rgba(var(--accent-rgb), 0.16), 0 15px 35px rgba(42, 35, 58, 0.22);
+    }
+    .character-node.connected { opacity: 0.96; }
+    .character-node img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .node-number {
+      position: absolute;
+      left: 50%;
+      bottom: -14px;
+      min-width: 30px;
+      height: 28px;
+      padding: 0 8px;
+      display: grid;
+      place-items: center;
+      transform: translateX(-50%);
+      border: 2px solid rgba(255, 255, 255, 0.95);
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(30, 27, 36, 0.83);
+      font-size: 10px;
+      font-weight: 900;
+      pointer-events: none;
+    }
+
+    .empty-state {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: rgba(63, 56, 72, 0.44);
+      font-size: 13px;
+      line-height: 1.8;
+      pointer-events: none;
+    }
+
+    .side-card {
+      position: absolute;
+      top: 172px;
+      right: 44px;
+      width: 283px;
+      height: 770px;
+      padding: 25px 24px;
+      overflow: hidden;
+      border: 1px solid rgba(51, 43, 68, 0.09);
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(18px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.56);
+    }
+    .side-card-label {
+      margin-bottom: 11px;
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.17em;
+    }
+    .side-comment {
+      margin: 0;
+      color: #514b58;
+      font-size: 13px;
+      line-height: 1.72;
+      white-space: pre-wrap;
+      word-break: keep-all;
+    }
+    .side-divider {
+      height: 1px;
+      margin: 23px 0;
+      background: rgba(54, 47, 68, 0.09);
+    }
+    .play-guide {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .play-guide li {
+      display: grid;
+      grid-template-columns: 23px 1fr;
+      gap: 9px;
+      align-items: start;
+      color: #5f5865;
+      font-size: 10px;
+      line-height: 1.5;
+    }
+    .step-number {
+      width: 23px;
+      height: 23px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--accent);
+      background: rgba(var(--accent-rgb), 0.11);
+      font-size: 9px;
+      font-weight: 900;
+    }
+    .line-summary {
+      display: grid;
+      gap: 8px;
+      max-height: 225px;
+      overflow: hidden;
+    }
+    .summary-item {
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      color: #5e5764;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+    .summary-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .empty-summary { color: rgba(73, 66, 81, 0.42); font-size: 9px; line-height: 1.55; }
+
+    .footer-credit {
+      position: absolute;
+      right: 62px;
+      bottom: 28px;
+      color: rgba(39, 34, 47, 0.47);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: 0.13em;
+    }
+
+    .dark-mode .art-title,
+    .dark-mode .side-comment { color: rgba(255,255,255,.92); }
+    .dark-mode .art-subtitle,
+    .dark-mode .status-badge,
+    .dark-mode .play-guide li,
+    .dark-mode .summary-item,
+    .dark-mode .footer-credit { color: rgba(255,255,255,.58); }
+    .dark-mode .status-badge,
+    .dark-mode .graph-card,
+    .dark-mode .side-card { border-color: rgba(255,255,255,.09); background: rgba(14,15,24,.35); }
+    .dark-mode .side-divider { background: rgba(255,255,255,.1); }
+    .dark-mode .graph-hint { color: rgba(255,255,255,.18); }
+    .dark-mode .character-node { border-color: rgba(255,255,255,.85); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      z-index: 100;
+      max-width: min(480px, calc(100vw - 32px));
+      padding: 11px 15px;
+      transform: translate(-50%, 18px);
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(28, 25, 35, 0.87);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 32px rgba(25, 22, 32, 0.22);
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.2s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1020px) {
+      .app { display: block; }
+      .editor { position: relative; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid rgba(43,38,59,.08); }
+      .preview-shell { padding: 16px; }
+      .preview-toolbar { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="editor">
+      <div class="brand">
+        <h1>Pair Guess Circle</h1>
+        <p>가지고 있는 캐릭터 사진을 마음대로 올리고, 원 위에 섞인 사진들을 직접 연결해 예상 페어를 만들어 봅니다.</p>
+      </div>
+
+      <section class="section">
+        <div class="section-title"><h2>기본 정보</h2></div>
+        <div class="field">
+          <label for="titleInput">제목</label>
+          <input id="titleInput" type="text" value="WHO IS YOUR PAIR?" />
+        </div>
+        <div class="field">
+          <label for="subtitleInput">부제목</label>
+          <input id="subtitleInput" type="text" value="Connect the characters who look like a pair." />
+        </div>
+        <div class="field">
+          <label for="commentInput">한쪽 코멘트</label>
+          <textarea id="commentInput">사진과 분위기만 보고 서로 페어라고 생각되는 두 사람을 연결해 주세요.</textarea>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">
+          <h2>캐릭터 사진</h2>
+          <span id="photoCount" class="tiny">0장</span>
+        </div>
+        <label class="upload-button">
+          사진 여러 장 업로드
+          <input id="photoInput" type="file" accept="image/*" multiple />
+        </label>
+        <p class="tiny" style="margin:8px 1px 0;">사진은 페어 단위로 묶이지 않습니다. 업로드한 모든 사진이 무작위 순서로 원 위에 배치됩니다.</p>
+        <div class="button-row">
+          <button id="shuffleBtn" class="btn btn-soft" type="button">무작위로 다시 섞기</button>
+          <button id="clearPhotosBtn" class="btn btn-plain" type="button">전체 비우기</button>
+        </div>
+        <div id="photoList" class="photo-list"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h2>페어 맞히기</h2><span id="modeLabel" class="tiny">대기 중</span></div>
+        <div id="selectionInfo" class="selection-box">사진을 두 장 이상 올린 뒤 <strong>페어 맞히기 시작</strong>을 눌러 주세요.</div>
+        <div class="button-row">
+          <button id="toggleGuessModeBtn" class="btn btn-primary" type="button">페어 맞히기 시작</button>
+          <button id="clearSelectionBtn" class="btn btn-plain" type="button" disabled>선택 해제</button>
+        </div>
+        <div class="field">
+          <label for="relationTextInput">선에 적을 관계</label>
+          <input id="relationTextInput" type="text" value="PAIR" placeholder="예: 연인 / 라이벌 / 소꿉친구" />
+        </div>
+        <div class="field">
+          <label for="relationColorInput">선 색상</label>
+          <div class="row">
+            <div class="color-wrap"><input id="relationColorInput" type="color" value="#6f5af7" /></div>
+            <input id="relationColorText" type="text" value="#6f5af7" />
+          </div>
+        </div>
+        <div class="button-row">
+          <button id="applyRelationBtn" class="btn btn-soft" type="button" disabled>선 수정 적용</button>
+          <button id="deleteRelationBtn" class="btn btn-danger" type="button" disabled>선 삭제</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h2>연결한 페어</h2><span id="relationCount" class="tiny">0개</span></div>
+        <div id="relationList" class="relation-list"><div class="tiny">아직 연결한 페어가 없습니다.</div></div>
+        <div class="button-row">
+          <button id="clearRelationsBtn" class="btn btn-plain" type="button">모든 선 지우기</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><h2>화면 스타일</h2></div>
+        <div class="field">
+          <label for="accentColorInput">포인트 색상</label>
+          <div class="row">
+            <div class="color-wrap"><input id="accentColorInput" type="color" value="#6f5af7" /></div>
+            <input id="accentColorText" type="text" value="#6f5af7" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="backgroundSelect">배경</label>
+          <select id="backgroundSelect">
+            <option value="lavender">라벤더 블루</option>
+            <option value="mint">민트 크림</option>
+            <option value="rose">로즈 그레이</option>
+            <option value="paper">페이퍼 화이트</option>
+            <option value="night">딥 네이비</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="nodeSizeInput">사진 원 크기</label>
+          <input id="nodeSizeInput" type="range" min="72" max="132" value="108" />
+          <div class="range-meta"><span>작게</span><span id="nodeSizeValue">108px</span><span>크게</span></div>
+        </div>
+        <div class="toggle-row">
+          <label for="showNumbersInput">사진 번호 표시</label>
+          <input id="showNumbersInput" type="checkbox" checked />
+        </div>
+      </section>
+
+      <section class="section">
+        <button id="downloadBtn" class="btn btn-primary" type="button" style="width:100%;min-height:46px;">PNG로 저장</button>
+        <p class="tiny" style="margin:8px 1px 0;">오른쪽 1400 × 1000 화면을 2배 해상도로 저장합니다.</p>
+      </section>
+    </aside>
+
+    <section class="preview-shell">
+      <div class="preview-toolbar">
+        <span><strong>미리보기</strong> · `페어 맞히기 시작`을 누르면 사진 두 장을 골라 선을 그을 수 있습니다.</span>
+        <span>1400 × 1000</span>
+      </div>
+
+      <div class="canvas-wrap">
+        <div id="artboard" class="artboard">
+          <header class="artboard-header">
+            <div>
+              <div class="eyebrow">PAIR GUESSING BOARD</div>
+              <h2 id="previewTitle" class="art-title">WHO IS YOUR PAIR?</h2>
+              <p id="previewSubtitle" class="art-subtitle">Connect the characters who look like a pair.</p>
+            </div>
+            <div id="statusBadge" class="status-badge">0 CHARACTERS · 0 LINES</div>
+          </header>
+
+          <div id="graphCard" class="graph-card">
+            <div id="graphHint" class="graph-hint">UPLOAD · SHUFFLE · CONNECT</div>
+            <svg id="relationsSvg" viewBox="0 0 1005 770" preserveAspectRatio="none" aria-label="페어 연결선"></svg>
+            <div id="nodeLayer" class="node-layer"></div>
+            <div id="emptyState" class="empty-state">왼쪽에서 캐릭터 사진을 여러 장 올려 주세요.<br />사진은 자동으로 섞여 원형으로 배치됩니다.</div>
+          </div>
+
+          <aside class="side-card">
+            <div class="side-card-label">COMMENT</div>
+            <p id="previewComment" class="side-comment">사진과 분위기만 보고 서로 페어라고 생각되는 두 사람을 연결해 주세요.</p>
+
+            <div class="side-divider"></div>
+            <div class="side-card-label">HOW TO PLAY</div>
+            <ol class="play-guide">
+              <li><span class="step-number">1</span><span>가지고 있는 캐릭터 사진을 원하는 만큼 올립니다.</span></li>
+              <li><span class="step-number">2</span><span>페어 맞히기를 시작하고 두 사진을 차례로 누릅니다.</span></li>
+              <li><span class="step-number">3</span><span>선의 색과 관계 문구를 원하는 대로 바꿉니다.</span></li>
+            </ol>
+
+            <div class="side-divider"></div>
+            <div class="side-card-label">MY PAIRS</div>
+            <div id="lineSummary" class="line-summary">
+              <div class="empty-summary">연결한 선이 이곳에 정리됩니다.</div>
+            </div>
+          </aside>
+
+          <div class="footer-credit">MADE BY @BAKHA_cm</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    const state = {
+      photos: [],
+      displayOrder: [],
+      relations: [],
+      guessMode: false,
+      selectedPhotoId: null,
+      selectedRelationId: null,
+      positions: new Map(),
+      nodeSize: 108,
+      showNumbers: true,
+    };
+
+    const ids = [
+      'titleInput','subtitleInput','commentInput','photoInput','photoCount','photoList','shuffleBtn','clearPhotosBtn',
+      'toggleGuessModeBtn','modeLabel','selectionInfo','clearSelectionBtn','relationTextInput','relationColorInput',
+      'relationColorText','applyRelationBtn','deleteRelationBtn','relationCount','relationList','clearRelationsBtn',
+      'accentColorInput','accentColorText','backgroundSelect','nodeSizeInput','nodeSizeValue','showNumbersInput',
+      'downloadBtn','artboard','previewTitle','previewSubtitle','previewComment','statusBadge','graphCard','graphHint',
+      'relationsSvg','nodeLayer','emptyState','lineSummary','toast'
+    ];
+    const el = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+
+    const backgrounds = {
+      lavender: 'radial-gradient(circle at 17% 11%, rgba(255,255,255,.94), transparent 25%), radial-gradient(circle at 84% 83%, rgba(255,255,255,.52), transparent 29%), linear-gradient(135deg, #eee9fb 0%, #e6f1f7 53%, #f5eaf1 100%)',
+      mint: 'radial-gradient(circle at 17% 10%, rgba(255,255,255,.94), transparent 26%), radial-gradient(circle at 84% 82%, rgba(255,255,255,.56), transparent 29%), linear-gradient(135deg, #e7f5ef 0%, #eef5e9 52%, #f7eee3 100%)',
+      rose: 'radial-gradient(circle at 17% 10%, rgba(255,255,255,.94), transparent 25%), radial-gradient(circle at 82% 82%, rgba(255,255,255,.5), transparent 30%), linear-gradient(135deg, #f3e6ec 0%, #ecebef 51%, #e7e4ee 100%)',
+      paper: 'radial-gradient(circle at 18% 10%, rgba(255,255,255,.96), transparent 26%), radial-gradient(circle at 85% 80%, rgba(227,221,212,.42), transparent 28%), linear-gradient(135deg, #f7f5f0 0%, #efede7 55%, #f5f2ed 100%)',
+      night: 'radial-gradient(circle at 18% 10%, rgba(124,92,255,.24), transparent 30%), radial-gradient(circle at 82% 80%, rgba(74,165,255,.18), transparent 28%), linear-gradient(135deg, #171625 0%, #1e2534 52%, #252033 100%)',
+    };
+
+    const relationPalette = ['#6f5af7', '#e26388', '#3b9f79', '#dc8838', '#478fd2', '#a064c8', '#ce6d45', '#3f8c92'];
+    let toastTimer = null;
+
+    function makeId(prefix) {
+      return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function escapeHtml(value = '') {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function normalizeHex(value, fallback = '#6f5af7') {
+      const candidate = String(value || '').trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(candidate)) return candidate;
+      if (/^#[0-9a-fA-F]{3}$/.test(candidate)) {
+        return `#${candidate[1]}${candidate[1]}${candidate[2]}${candidate[2]}${candidate[3]}${candidate[3]}`;
+      }
+      return fallback;
+    }
+
+    function hexToRgb(hex) {
+      const value = normalizeHex(hex).slice(1);
+      return [
+        parseInt(value.slice(0, 2), 16),
+        parseInt(value.slice(2, 4), 16),
+        parseInt(value.slice(4, 6), 16),
+      ];
+    }
+
+    function shuffleArray(array) {
+      const copy = [...array];
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[randomIndex]] = [copy[randomIndex], copy[index]];
+      }
+      return copy;
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`${file.name} 파일을 읽을 수 없습니다.`));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      el.toast.textContent = message;
+      el.toast.classList.add('show');
+      toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2200);
+    }
+
+    function getPhoto(photoId) {
+      return state.photos.find((photo) => photo.id === photoId) || null;
+    }
+
+    function getRelation(relationId) {
+      return state.relations.find((relation) => relation.id === relationId) || null;
+    }
+
+    function connectedRelationFor(photoId) {
+      return state.relations.find((relation) => relation.from === photoId || relation.to === photoId) || null;
+    }
+
+    async function handlePhotoUpload(event) {
+      const files = [...event.target.files];
+      if (!files.length) return;
+
+      try {
+        const loaded = await Promise.all(files.map(async (file) => ({
+          id: makeId('photo'),
+          src: await readFileAsDataUrl(file),
+        })));
+        state.photos.push(...loaded);
+        state.displayOrder.push(...shuffleArray(loaded.map((photo) => photo.id)));
+        state.displayOrder = shuffleArray(state.displayOrder);
+        recalculatePositions();
+        renderAll();
+      } catch (error) {
+        alert(error.message || '이미지를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    function removePhoto(photoId) {
+      state.photos = state.photos.filter((photo) => photo.id !== photoId);
+      state.displayOrder = state.displayOrder.filter((id) => id !== photoId);
+      state.relations = state.relations.filter((relation) => relation.from !== photoId && relation.to !== photoId);
+      if (state.selectedPhotoId === photoId) state.selectedPhotoId = null;
+      if (state.selectedRelationId && !getRelation(state.selectedRelationId)) state.selectedRelationId = null;
+      recalculatePositions();
+      renderAll();
+    }
+
+    function shufflePhotos() {
+      state.displayOrder = shuffleArray(state.photos.map((photo) => photo.id));
+      recalculatePositions();
+      renderAll();
+    }
+
+    function recalculatePositions() {
+      state.positions.clear();
+      const count = state.displayOrder.length;
+      if (!count) return;
+
+      const centerX = 502.5;
+      const centerY = 386;
+      const nodeRadius = state.nodeSize / 2;
+      const radiusX = Math.max(250, 420 - nodeRadius * 0.45);
+      const radiusY = Math.max(215, 315 - nodeRadius * 0.3);
+      const startAngle = -Math.PI / 2;
+
+      state.displayOrder.forEach((photoId, index) => {
+        const angle = startAngle + (Math.PI * 2 * index) / count;
+        state.positions.set(photoId, {
+          x: centerX + Math.cos(angle) * radiusX,
+          y: centerY + Math.sin(angle) * radiusY,
+        });
+      });
+    }
+
+    function renderAll() {
+      recalculatePositions();
+      renderPhotoList();
+      renderNodes();
+      renderRelations();
+      renderRelationList();
+      renderSelectionInfo();
+      renderTexts();
+      updateButtons();
+    }
+
+    function renderPhotoList() {
+      el.photoCount.textContent = `${state.photos.length}장`;
+      if (!state.photos.length) {
+        el.photoList.innerHTML = '';
+        return;
+      }
+      el.photoList.innerHTML = state.photos.map((photo, index) => `
+        <div class="photo-card">
+          <img src="${photo.src}" alt="캐릭터 사진 ${index + 1}" />
+          <span class="photo-number">${index + 1}</span>
+          <button class="photo-delete" type="button" data-delete-photo="${photo.id}" aria-label="사진 삭제">×</button>
+        </div>
+      `).join('');
+    }
+
+    function renderNodes() {
+      el.nodeLayer.innerHTML = '';
+      el.emptyState.style.display = state.photos.length ? 'none' : 'grid';
+      el.graphHint.style.display = state.photos.length ? 'block' : 'none';
+
+      state.displayOrder.forEach((photoId, displayIndex) => {
+        const photo = getPhoto(photoId);
+        const position = state.positions.get(photoId);
+        if (!photo || !position) return;
+
+        const node = document.createElement('button');
+        node.type = 'button';
+        node.className = 'character-node';
+        if (state.guessMode) node.classList.add('can-pick');
+        if (state.selectedPhotoId === photoId) node.classList.add('selected');
+        if (connectedRelationFor(photoId)) node.classList.add('connected');
+        node.style.left = `${position.x}px`;
+        node.style.top = `${position.y}px`;
+        node.dataset.photoId = photoId;
+        node.setAttribute('aria-label', `캐릭터 사진 ${displayIndex + 1}`);
+        node.innerHTML = `
+          <img src="${photo.src}" alt="캐릭터 사진 ${displayIndex + 1}" />
+          ${state.showNumbers ? `<span class="node-number">${displayIndex + 1}</span>` : ''}
+        `;
+        el.nodeLayer.appendChild(node);
+      });
+    }
+
+    function handleNodeClick(photoId) {
+      if (!state.guessMode) {
+        showToast('먼저 페어 맞히기 시작 버튼을 눌러 주세요.');
+        return;
+      }
+
+      if (state.selectedRelationId) {
+        state.selectedRelationId = null;
+      }
+
+      if (!state.selectedPhotoId) {
+        const existing = connectedRelationFor(photoId);
+        if (existing) {
+          selectRelation(existing.id);
+          return;
+        }
+        state.selectedPhotoId = photoId;
+        renderAll();
+        return;
+      }
+
+      if (state.selectedPhotoId === photoId) {
+        state.selectedPhotoId = null;
+        renderAll();
+        return;
+      }
+
+      const firstExisting = connectedRelationFor(state.selectedPhotoId);
+      const secondExisting = connectedRelationFor(photoId);
+      if (firstExisting || secondExisting) {
+        showToast('이미 연결된 사진입니다. 기존 선을 지운 뒤 다시 연결해 주세요.');
+        state.selectedPhotoId = null;
+        renderAll();
+        return;
+      }
+
+      createRelation(state.selectedPhotoId, photoId);
+      state.selectedPhotoId = null;
+      renderAll();
+    }
+
+    function createRelation(from, to) {
+      const relation = {
+        id: makeId('relation'),
+        from,
+        to,
+        label: el.relationTextInput.value.trim() || 'PAIR',
+        color: normalizeHex(el.relationColorInput.value, '#6f5af7'),
+      };
+      state.relations.push(relation);
+      state.selectedRelationId = relation.id;
+      const nextColor = relationPalette[state.relations.length % relationPalette.length];
+      syncRelationColor(nextColor);
+    }
+
+    function selectRelation(relationId) {
+      const relation = getRelation(relationId);
+      if (!relation) return;
+      state.selectedPhotoId = null;
+      state.selectedRelationId = relationId;
+      el.relationTextInput.value = relation.label;
+      syncRelationColor(relation.color);
+      renderAll();
+    }
+
+    function renderRelations() {
+      el.relationsSvg.innerHTML = '';
+      state.relations.forEach((relation) => {
+        const from = state.positions.get(relation.from);
+        const to = state.positions.get(relation.to);
+        if (!from || !to) return;
+        const group = createRelationGroup(relation, from, to);
+        el.relationsSvg.appendChild(group);
+      });
+    }
+
+    function createRelationGroup(relation, from, to) {
+      const ns = 'http://www.w3.org/2000/svg';
+      const group = document.createElementNS(ns, 'g');
+      group.dataset.relationId = relation.id;
+      group.style.cursor = 'pointer';
+
+      const angle = Math.atan2(to.y - from.y, to.x - from.x);
+      const inset = state.nodeSize * 0.42;
+      const x1 = from.x + Math.cos(angle) * inset;
+      const y1 = from.y + Math.sin(angle) * inset;
+      const x2 = to.x - Math.cos(angle) * inset;
+      const y2 = to.y - Math.sin(angle) * inset;
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      const selected = state.selectedRelationId === relation.id;
+
+      const hit = document.createElementNS(ns, 'line');
+      hit.setAttribute('x1', x1);
+      hit.setAttribute('y1', y1);
+      hit.setAttribute('x2', x2);
+      hit.setAttribute('y2', y2);
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-width', '22');
+      hit.setAttribute('stroke-linecap', 'round');
+
+      const line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('stroke', relation.color);
+      line.setAttribute('stroke-width', selected ? '6' : '4');
+      line.setAttribute('stroke-linecap', 'round');
+      line.setAttribute('opacity', selected ? '1' : '.88');
+
+      const labelText = relation.label || 'PAIR';
+      const labelWidth = Math.max(54, Math.min(190, 24 + labelText.length * 9));
+      const rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x', midX - labelWidth / 2);
+      rect.setAttribute('y', midY - 14);
+      rect.setAttribute('width', labelWidth);
+      rect.setAttribute('height', 28);
+      rect.setAttribute('rx', 14);
+      rect.setAttribute('fill', 'rgba(255,255,255,.94)');
+      rect.setAttribute('stroke', relation.color);
+      rect.setAttribute('stroke-width', selected ? '2.5' : '1.5');
+
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', midX);
+      text.setAttribute('y', midY + 3.5);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', relation.color);
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-weight', '900');
+      text.setAttribute('font-family', 'Pretendard, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif');
+      text.textContent = labelText;
+
+      group.append(hit, line, rect, text);
+      return group;
+    }
+
+    function renderRelationList() {
+      el.relationCount.textContent = `${state.relations.length}개`;
+      if (!state.relations.length) {
+        el.relationList.innerHTML = '<div class="tiny">아직 연결한 페어가 없습니다.</div>';
+        el.lineSummary.innerHTML = '<div class="empty-summary">연결한 선이 이곳에 정리됩니다.</div>';
+        return;
+      }
+
+      el.relationList.innerHTML = state.relations.map((relation, index) => `
+        <div class="relation-item ${state.selectedRelationId === relation.id ? 'active' : ''}" data-select-relation="${relation.id}">
+          <span class="relation-dot" style="background:${relation.color}"></span>
+          <span class="relation-item-name">${escapeHtml(relation.label || 'PAIR')}</span>
+          <span class="relation-item-index">${index + 1}</span>
+        </div>
+      `).join('');
+
+      el.lineSummary.innerHTML = state.relations.slice(0, 10).map((relation, index) => `
+        <div class="summary-item">
+          <span class="summary-dot" style="background:${relation.color}"></span>
+          <span>${index + 1}. ${escapeHtml(relation.label || 'PAIR')}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderSelectionInfo() {
+      if (!state.guessMode) {
+        el.selectionInfo.innerHTML = state.photos.length >= 2
+          ? '<strong>페어 맞히기 시작</strong>을 누르면 사진을 선택할 수 있습니다.'
+          : '사진을 두 장 이상 올린 뒤 <strong>페어 맞히기 시작</strong>을 눌러 주세요.';
+        return;
+      }
+      if (state.selectedRelationId) {
+        const relation = getRelation(state.selectedRelationId);
+        el.selectionInfo.innerHTML = relation
+          ? `<strong>${escapeHtml(relation.label || 'PAIR')}</strong> 선을 선택했습니다. 아래에서 문구와 색을 바꿀 수 있습니다.`
+          : '첫 번째 사진을 선택해 주세요.';
+        return;
+      }
+      if (state.selectedPhotoId) {
+        const number = state.displayOrder.indexOf(state.selectedPhotoId) + 1;
+        el.selectionInfo.innerHTML = `<strong>${number}번 사진</strong>을 선택했습니다. 연결할 두 번째 사진을 눌러 주세요.`;
+        return;
+      }
+      el.selectionInfo.innerHTML = '페어라고 생각되는 <strong>첫 번째 사진</strong>을 선택해 주세요.';
+    }
+
+    function renderTexts() {
+      el.previewTitle.textContent = el.titleInput.value || 'WHO IS YOUR PAIR?';
+      el.previewSubtitle.textContent = el.subtitleInput.value || 'Connect the characters who look like a pair.';
+      el.previewComment.textContent = el.commentInput.value || '';
+      el.statusBadge.textContent = `${state.photos.length} CHARACTERS · ${state.relations.length} LINES`;
+      el.modeLabel.textContent = state.guessMode ? '선택 가능' : '대기 중';
+      el.toggleGuessModeBtn.textContent = state.guessMode ? '페어 맞히기 종료' : '페어 맞히기 시작';
+      el.toggleGuessModeBtn.classList.toggle('btn-primary', !state.guessMode);
+      el.toggleGuessModeBtn.classList.toggle('btn-soft', state.guessMode);
+    }
+
+    function updateButtons() {
+      el.toggleGuessModeBtn.disabled = state.photos.length < 2;
+      el.clearSelectionBtn.disabled = !state.selectedPhotoId && !state.selectedRelationId;
+      el.applyRelationBtn.disabled = !state.selectedRelationId;
+      el.deleteRelationBtn.disabled = !state.selectedRelationId;
+      el.shuffleBtn.disabled = state.photos.length < 2;
+      el.clearPhotosBtn.disabled = !state.photos.length;
+      el.clearRelationsBtn.disabled = !state.relations.length;
+    }
+
+    function toggleGuessMode() {
+      if (state.photos.length < 2) {
+        showToast('사진을 두 장 이상 올려 주세요.');
+        return;
+      }
+      state.guessMode = !state.guessMode;
+      state.selectedPhotoId = null;
+      state.selectedRelationId = null;
+      renderAll();
+    }
+
+    function clearSelection() {
+      state.selectedPhotoId = null;
+      state.selectedRelationId = null;
+      renderAll();
+    }
+
+    function applySelectedRelation() {
+      const relation = getRelation(state.selectedRelationId);
+      if (!relation) return;
+      relation.label = el.relationTextInput.value.trim() || 'PAIR';
+      relation.color = normalizeHex(el.relationColorInput.value, relation.color);
+      renderAll();
+    }
+
+    function deleteSelectedRelation() {
+      if (!state.selectedRelationId) return;
+      state.relations = state.relations.filter((relation) => relation.id !== state.selectedRelationId);
+      state.selectedRelationId = null;
+      renderAll();
+    }
+
+    function syncRelationColor(value) {
+      const normalized = normalizeHex(value, '#6f5af7');
+      el.relationColorInput.value = normalized;
+      el.relationColorText.value = normalized;
+    }
+
+    function applyAccent(value) {
+      const normalized = normalizeHex(value, '#6f5af7');
+      const [r, g, b] = hexToRgb(normalized);
+      document.documentElement.style.setProperty('--accent', normalized);
+      document.documentElement.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+      el.accentColorInput.value = normalized;
+      el.accentColorText.value = normalized;
+    }
+
+    function applyBackground(value) {
+      el.artboard.style.background = backgrounds[value] || backgrounds.lavender;
+      el.artboard.classList.toggle('dark-mode', value === 'night');
+    }
+
+    async function downloadArtboard() {
+      if (typeof html2canvas !== 'function') {
+        alert('이미지 저장 모듈을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
+        return;
+      }
+
+      const previousSelectedPhoto = state.selectedPhotoId;
+      const previousSelectedRelation = state.selectedRelationId;
+      state.selectedPhotoId = null;
+      state.selectedRelationId = null;
+      renderAll();
+
+      el.downloadBtn.disabled = true;
+      el.downloadBtn.textContent = '저장 중...';
+      try {
+        const canvas = await html2canvas(el.artboard, {
+          scale: 2,
+          backgroundColor: null,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          imageTimeout: 0,
+        });
+        const link = document.createElement('a');
+        const fileTitle = (el.titleInput.value || 'pair-guess-circle')
+          .trim()
+          .replace(/[\\/:*?"<>|]+/g, '-')
+          .replace(/\s+/g, '-');
+        link.download = `${fileTitle || 'pair-guess-circle'}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error(error);
+        alert('이미지 저장 중 오류가 발생했습니다. 사진 용량을 줄이거나 다시 시도해 주세요.');
+      } finally {
+        state.selectedPhotoId = previousSelectedPhoto;
+        state.selectedRelationId = previousSelectedRelation;
+        renderAll();
+        el.downloadBtn.disabled = false;
+        el.downloadBtn.textContent = 'PNG로 저장';
+      }
+    }
+
+    el.photoInput.addEventListener('change', handlePhotoUpload);
+    el.photoList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-delete-photo]');
+      if (button) removePhoto(button.dataset.deletePhoto);
+    });
+    el.shuffleBtn.addEventListener('click', shufflePhotos);
+    el.clearPhotosBtn.addEventListener('click', () => {
+      if (!state.photos.length) return;
+      if (!confirm('업로드한 사진과 연결선을 모두 지울까요?')) return;
+      state.photos = [];
+      state.displayOrder = [];
+      state.relations = [];
+      state.selectedPhotoId = null;
+      state.selectedRelationId = null;
+      state.guessMode = false;
+      renderAll();
+    });
+
+    el.toggleGuessModeBtn.addEventListener('click', toggleGuessMode);
+    el.clearSelectionBtn.addEventListener('click', clearSelection);
+    el.applyRelationBtn.addEventListener('click', applySelectedRelation);
+    el.deleteRelationBtn.addEventListener('click', deleteSelectedRelation);
+    el.clearRelationsBtn.addEventListener('click', () => {
+      if (!state.relations.length) return;
+      if (!confirm('그려진 모든 선을 지울까요?')) return;
+      state.relations = [];
+      state.selectedPhotoId = null;
+      state.selectedRelationId = null;
+      renderAll();
+    });
+
+    el.nodeLayer.addEventListener('click', (event) => {
+      const node = event.target.closest('[data-photo-id]');
+      if (node) handleNodeClick(node.dataset.photoId);
+    });
+    el.relationsSvg.addEventListener('click', (event) => {
+      const group = event.target.closest('[data-relation-id]');
+      if (group) selectRelation(group.dataset.relationId);
+    });
+    el.relationList.addEventListener('click', (event) => {
+      const item = event.target.closest('[data-select-relation]');
+      if (item) selectRelation(item.dataset.selectRelation);
+    });
+
+    ['input', 'change'].forEach((eventName) => {
+      el.titleInput.addEventListener(eventName, renderTexts);
+      el.subtitleInput.addEventListener(eventName, renderTexts);
+      el.commentInput.addEventListener(eventName, renderTexts);
+    });
+
+    el.relationColorInput.addEventListener('input', () => syncRelationColor(el.relationColorInput.value));
+    el.relationColorText.addEventListener('change', () => syncRelationColor(el.relationColorText.value));
+    el.accentColorInput.addEventListener('input', () => applyAccent(el.accentColorInput.value));
+    el.accentColorText.addEventListener('change', () => applyAccent(el.accentColorText.value));
+    el.backgroundSelect.addEventListener('change', () => applyBackground(el.backgroundSelect.value));
+    el.nodeSizeInput.addEventListener('input', () => {
+      state.nodeSize = Number(el.nodeSizeInput.value);
+      document.documentElement.style.setProperty('--node-size', `${state.nodeSize}px`);
+      el.nodeSizeValue.textContent = `${state.nodeSize}px`;
+      renderAll();
+    });
+    el.showNumbersInput.addEventListener('change', () => {
+      state.showNumbers = el.showNumbersInput.checked;
+      renderNodes();
+    });
+    el.downloadBtn.addEventListener('click', downloadArtboard);
+
+    applyAccent('#6f5af7');
+    applyBackground('lavender');
+    renderAll();
+  </script>
+</body>
+</html>
